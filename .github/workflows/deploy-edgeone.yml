@@ -1,0 +1,42 @@
+name: Deploy to EdgeOne
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      
+      - name: Build Backend
+        working-directory: backend
+        run: npm ci --only=production
+      
+      - name: Deploy to EdgeOne
+        env:
+          EDGEONE_TOKEN: ${{ secrets.EDGEONE_TOKEN }}
+          EDGEONE_WORKSPACE: ${{ secrets.EDGEONE_WORKSPACE }}
+        run: |
+          npm install -g @edgeone/cli
+          edgeone login --token $EDGEONE_TOKEN --workspace $EDGEONE_WORKSPACE
+          edgeone deploy --name prediksivisa
+      
+      - name: Deployment Status
+        run: |
+          echo "✅ Deployment completed"
+          echo "Frontend: https://prediksivisa.edgeone.cn"
+          echo "Backend: https://api.prediksivisa.edgeone.cn"
