@@ -1,0 +1,132 @@
+# EdgeOne Configuration
+name: prediksivisa
+version: 1.0.0
+
+# Backend Configuration
+backend:
+  name: prediksivisa-backend
+  runtime: node
+  node_version: 18
+  
+  build:
+    command: cd backend && npm ci
+    output_dir: backend
+  
+  start:
+    command: node backend/server.js
+    port: 3001
+    memory: 512MB
+    cpu: 0.5
+  
+  env:
+    NODE_ENV: production
+    PORT: 3001
+  
+  health_check:
+    path: /api/health
+    interval: 30
+    timeout: 10
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+  
+  regions:
+    - region: asia-east
+      replicas: 2
+    - region: asia-southeast
+      replicas: 1
+
+# Frontend Configuration  
+frontend:
+  name: prediksivisa-frontend
+  
+  build:
+    command: cd frontend && npm ci && npm run build
+    output_dir: frontend/dist
+  
+  serve:
+    cache:
+      max_age: 3600
+      s_max_age: 86400
+  
+  env:
+    VITE_API_URL: https://api.prediksivisa.edgeone.cn
+  
+  regions:
+    - region: global
+      cdn: true
+      cache: true
+
+# Domains
+domains:
+  - domain: prediksivisa.edgeone.cn
+    type: frontend
+    ssl: true
+    auto_redirect_https: true
+  
+  - domain: api.prediksivisa.edgeone.cn
+    type: backend
+    ssl: true
+    auto_redirect_https: true
+
+# Routing Rules
+routing:
+  - path: /api/*
+    target: backend
+    rewrite: false
+  
+  - path: /*
+    target: frontend
+
+# Security
+security:
+  cors:
+    enabled: true
+    origins:
+      - https://prediksivisa.edgeone.cn
+      - http://localhost:3000
+    methods:
+      - GET
+      - POST
+      - OPTIONS
+    credentials: true
+  
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+    burst: 10
+  
+  headers:
+    X-Frame-Options: DENY
+    X-Content-Type-Options: nosniff
+    X-XSS-Protection: "1; mode=block"
+    Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# Logging
+logging:
+  level: info
+  format: json
+  retention_days: 30
+
+# Monitoring
+monitoring:
+  enabled: true
+  metrics:
+    - requests
+    - latency
+    - errors
+    - memory
+    - cpu
+  
+  alerts:
+    - name: high_error_rate
+      condition: error_rate > 5%
+      notify: email
+    
+    - name: high_latency
+      condition: p95_latency > 5000ms
+      notify: email
+    
+    - name: out_of_memory
+      condition: memory_usage > 90%
+      notify: email
+

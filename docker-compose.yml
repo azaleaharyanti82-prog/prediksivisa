@@ -1,0 +1,43 @@
+# Docker Compose configuration for local development and production
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prediksivisa-backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+    volumes:
+      - ./backend:/app/backend
+      - ./uploads:/app/uploads
+      - ./temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: prediksivisa-frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://backend:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  default:
+    name: prediksivisa-network
