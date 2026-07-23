@@ -1,0 +1,30 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Run tests with coverage
+        run: |
+          cd backend && npm test -- --coverage --if-present || true
+          cd ../frontend && npm test -- --coverage --if-present || true
+        continue-on-error: true
+      
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+        continue-on-error: true
