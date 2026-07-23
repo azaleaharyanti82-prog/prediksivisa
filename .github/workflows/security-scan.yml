@@ -1,0 +1,41 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Backend - npm audit
+        working-directory: backend
+        run: |
+          npm ci
+          npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Frontend - npm audit
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Check dependencies
+        run: |
+          echo "Backend dependencies:"
+          npm list --depth=0 --prefix backend
+          echo ""
+          echo "Frontend dependencies:"
+          npm list --depth=0 --prefix frontend
+        continue-on-error: true
